@@ -1,0 +1,10 @@
+name: infra
+description: A high-throughput event streaming pipeline simulating real-time financial transaction processing. Polyglot microservices communicating over gRPC, connected via Kafka, hosted locally on AWS-emulated infrastructure.
+runtime:
+  name: nodejs
+  options:
+    packagemanager: bun
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: aws-typescript
