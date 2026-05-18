@@ -11,36 +11,80 @@ const apiImage = new docker.Image("api", {
   skipPush: true,
 });
 
-// const producerImage = new docker.Image("producer", {
-//   imageName: "grpc-producer",
-//   build: { context: "../producer" },
-// });
+const producerImage = new docker.Image("producer", {
+  imageName: "grpc-producer",
+  build: { context: "../producer" },
+  skipPush: true,
+});
 
 // const processorImage = new docker.Image("processor", {
 //   imageName: "grpc-processor",
 //   build: { context: "../processor" },
 // });
 
-// const processor = new docker.Container("processor", {
+//
+// // const processor = new docker.Container("processor", {
 //   image: processorImage.imageName,
 //   name: "processor",
 //   networksAdvanced: [{ name: network.name }],
 //   ports: [],
-//   envs: ["PORT=50051"],
 //   mustRun: true,
 // });
 
-// const producer = new docker.Container("producer", {
-//   image: producerImage.imageName,
-//   name: "producer",
-//   networksAdvanced: [{ name: network.name }],
-//   ports: [],
-//   envs: [
-//     "PORT=50051",
-//     pulumi.interpolate`PROCESSOR_ADDRESS=${processor.name}:50051`,
-//   ],
-//   mustRun: true,
-// });
+const redpanda = new docker.Container("redpanda", {
+  image: "docker.redpanda.com/redpandadata/redpanda:v26.1.8",
+  name: "redpanda",
+  networksAdvanced: [{ name: network.name }],
+  ports: [
+    {
+      internal: 9092,
+      external: 9092,
+    },
+    // {
+    //   internal: 9644,
+    //   external: 9644,
+    // },
+  ],
+  command: [
+    "redpanda",
+    "start",
+    "--mode",
+    "dev-container",
+    "--smp",
+    "1",
+    "--memory",
+    "1G",
+    "--overprovisioned",
+    "--kafka-addr",
+    "internal://0.0.0.0:9092",
+    "--advertise-kafka-addr",
+    "internal://redpanda:9092",
+  ],
+  memory: 2048,
+  mustRun: true,
+  healthcheck: {
+    tests: ["CMD", "curl", "-f", "http://localhost:9644/v1/status/ready"],
+    interval: "5s",
+    timeout: "3s",
+    retries: 5,
+    startPeriod: "10s",
+  },
+});
+
+const producer = new docker.Container(
+  "producer",
+  {
+    image: producerImage.imageName,
+    name: "producer",
+    networksAdvanced: [{ name: network.name }],
+    ports: [],
+    envs: ["KAFKA_BROKERS=redpanda:9092"],
+    mustRun: true,
+  },
+  {
+    dependsOn: [redpanda],
+  },
+);
 
 const api = new docker.Container("api", {
   image: apiImage.imageName,
@@ -52,11 +96,7 @@ const api = new docker.Container("api", {
       external: 3000,
     },
   ],
-  envs: [
-    "PORT=3000",
-    // pulumi.interpolate`PRODUCER_ADDRESS=${producer.name}:50051`,
-    // pulumi.interpolate`PROCESSOR_ADDRESS=${processor.name}:50051`,
-  ],
+  envs: ["PORT=3000"],
   mustRun: true,
 });
 
