@@ -1,10 +1,12 @@
 FROM rust:1.95-alpine AS builder
-RUN apk add --no-cache bash cmake make gcc g++ openssl-dev pkgconfig musl-dev zlib-dev
+RUN apk add --no-cache bash cmake make gcc g++ openssl-dev pkgconfig musl-dev zlib-dev zlib-static
+ENV RUSTFLAGS="-L/usr/lib"
 WORKDIR /app
 COPY Cargo.lock Cargo.toml ./
 RUN mkdir -p src && echo 'fn main() {}' > src/main.rs
 RUN cargo build --release
 COPY src/ src/
+RUN touch src/*.rs
 RUN cargo build --locked --release
 
 FROM alpine:latest
