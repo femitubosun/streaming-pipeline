@@ -11,37 +11,25 @@ const apiImage = new docker.Image("api", {
   skipPush: true,
 });
 
-// const producerImage = new docker.Image("producer", {
-//   imageName: "grpc-producer",
-//   build: { context: "../producer" },
-// });
+const producerImage = new docker.Image("producer", {
+  imageName: "grpc-producer",
+  build: { context: "../producer" },
+  skipPush: true,
+});
 
 // const processorImage = new docker.Image("processor", {
 //   imageName: "grpc-processor",
 //   build: { context: "../processor" },
 // });
 
-// const processor = new docker.Container("processor", {
+//
+// // const processor = new docker.Container("processor", {
 //   image: processorImage.imageName,
 //   name: "processor",
 //   networksAdvanced: [{ name: network.name }],
 //   ports: [],
-//   envs: ["PORT=50051"],
 //   mustRun: true,
 // });
-
-// const producer = new docker.Container("producer", {
-//   image: producerImage.imageName,
-//   name: "producer",
-//   networksAdvanced: [{ name: network.name }],
-//   ports: [],
-//   envs: [
-//     "PORT=50051",
-//     pulumi.interpolate`PROCESSOR_ADDRESS=${processor.name}:50051`,
-//   ],
-//   mustRun: true,
-// });
-//
 
 const redpanda = new docker.Container("redpanda", {
   image: "docker.redpanda.com/redpandadata/redpanda:v26.1.8",
@@ -83,6 +71,21 @@ const redpanda = new docker.Container("redpanda", {
   },
 });
 
+const producer = new docker.Container(
+  "producer",
+  {
+    image: producerImage.imageName,
+    name: "producer",
+    networksAdvanced: [{ name: network.name }],
+    ports: [],
+    envs: ["KAFKA_BROKERS=redpanda:9092"],
+    mustRun: true,
+  },
+  {
+    dependsOn: [redpanda],
+  },
+);
+
 const api = new docker.Container("api", {
   image: apiImage.imageName,
   name: "api",
@@ -93,11 +96,7 @@ const api = new docker.Container("api", {
       external: 3000,
     },
   ],
-  envs: [
-    "PORT=3000",
-    // pulumi.interpolate`PRODUCER_ADDRESS=${producer.name}:50051`,
-    // pulumi.interpolate`PROCESSOR_ADDRESS=${processor.name}:50051`,
-  ],
+  envs: ["PORT=3000"],
   mustRun: true,
 });
 
