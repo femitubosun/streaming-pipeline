@@ -17,19 +17,11 @@ const producerImage = new docker.Image("producer", {
   skipPush: true,
 });
 
-// const processorImage = new docker.Image("processor", {
-//   imageName: "grpc-processor",
-//   build: { context: "../processor" },
-// });
-
-//
-// // const processor = new docker.Container("processor", {
-//   image: processorImage.imageName,
-//   name: "processor",
-//   networksAdvanced: [{ name: network.name }],
-//   ports: [],
-//   mustRun: true,
-// });
+const processorImage = new docker.Image("processor", {
+  imageName: "grpc-processor",
+  build: { context: "../processor" },
+  skipPush: true,
+});
 
 const redpanda = new docker.Container("redpanda", {
   image: "docker.redpanda.com/redpandadata/redpanda:v26.1.8",
@@ -80,6 +72,21 @@ const producer = new docker.Container(
     ports: [],
     envs: ["KAFKA_BROKERS=redpanda:9092"],
     mustRun: true,
+  },
+  {
+    dependsOn: [redpanda],
+  },
+);
+
+const processor = new docker.Container(
+  "processor",
+  {
+    image: processorImage.imageName,
+    name: "processor",
+    networksAdvanced: [{ name: network.name }],
+    ports: [],
+    mustRun: true,
+    envs: ["KAFKA_BROKERS=redpanda:9092"],
   },
   {
     dependsOn: [redpanda],
