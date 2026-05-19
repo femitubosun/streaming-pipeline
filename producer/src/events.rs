@@ -1,45 +1,42 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
 pub enum Currency {
+    #[serde(rename = "USD")]
     USD,
+
+    #[serde(rename = "NGN")]
     NGN,
+
+    #[serde(rename = "EUR")]
     EUR,
+
+    #[serde(rename = "GBP")]
+    GBP,
 }
 
-impl From<Currency> for String {
-    fn from(c: Currency) -> Self {
-        match c {
-            Currency::USD => "USD".to_string(),
-            Currency::NGN => "NGN".to_string(),
-            Currency::EUR => "EUR".to_string(),
-        }
-    }
-}
-
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum TransactionEventType {
+    #[serde(rename = "transaction.initiated")]
     Initiated,
-    Authorized,
-    Completed,
-    Declined,
-    Flagged,
-    Reversed,
-    Expired,
-}
 
-impl From<TransactionEventType> for String {
-    fn from(t: TransactionEventType) -> Self {
-        match t {
-            TransactionEventType::Initiated => "transaction.initiated".to_string(),
-            TransactionEventType::Authorized => "transaction.authorized".to_string(),
-            TransactionEventType::Completed => "transaction.completed".to_string(),
-            TransactionEventType::Declined => "transaction.declined".to_string(),
-            TransactionEventType::Flagged => "transaction.flagged".to_string(),
-            TransactionEventType::Reversed => "transaction.reversed".to_string(),
-            TransactionEventType::Expired => "transaction.expired".to_string(),
-        }
-    }
+    #[serde(rename = "transaction.authorized")]
+    Authorized,
+
+    #[serde(rename = "transaction.completed")]
+    Completed,
+
+    #[serde(rename = "transaction.declined")]
+    Declined,
+
+    #[serde(rename = "transaction.flagged")]
+    Flagged,
+
+    #[serde(rename = "transaction.reversed")]
+    Reversed,
+
+    #[serde(rename = "transaction.expired")]
+    Expired,
 }
 
 #[derive(Clone)]
@@ -53,11 +50,11 @@ pub struct TransactionEvent {
     pub event_id: String,
     pub idempotency_key: String,
     pub event_time: String,
-    pub event_type: String,
+    pub event_type: TransactionEventType,
 
     pub customer_id: String,
     pub amount: u64,
-    pub currency: String,
+    pub currency: Currency,
     pub merchant_id: String,
     pub country: String,
 
