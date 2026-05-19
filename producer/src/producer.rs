@@ -5,13 +5,8 @@ use rdkafka::{
     producer::{FutureProducer, FutureRecord},
     util::Timeout,
 };
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct AppMessage {
-    pub id: String,
-    pub message: String,
-}
+use crate::events::TransactionEvent;
 
 pub struct AppProducer {
     producer: FutureProducer,
@@ -31,7 +26,7 @@ impl AppProducer {
         }
     }
 
-    pub async fn send_message(&self, message: AppMessage) {
+    pub async fn send_message(&self, message: TransactionEvent) {
         let payload = serde_json::to_string(&message).expect("Failed to serialize message");
 
         match self
@@ -39,15 +34,13 @@ impl AppProducer {
             .send(
                 FutureRecord::to(&self.topic)
                     .payload(&payload)
-                    .key(&message.id),
+                    .key(&message.customer_id),
                 Timeout::After(Duration::from_secs(10)),
             )
             .await
         {
             Ok(_) => println!("Message sent"),
-            Err((err, _)) => eprintln!("Filed to send: {err:?}"),
+            Err((err, _)) => eprintln!("Failed to send: {err:?}"),
         }
-
-        println!("Message sent")
     }
 }

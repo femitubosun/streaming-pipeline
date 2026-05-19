@@ -3,6 +3,8 @@ use std::time::Duration;
 use tokio::time::interval;
 
 mod admin;
+mod events;
+mod generator;
 mod producer;
 
 #[tokio::main]
@@ -29,10 +31,7 @@ async fn main() {
 
     loop {
         ticker.tick().await;
-        let msg = producer::AppMessage {
-            id: uuid::Uuid::new_v4().to_string(),
-            message: "synthetic_tx".to_string(),
-        };
+        let msg = generator::generate_event();
         producer.send_message(msg).await;
     }
 }
