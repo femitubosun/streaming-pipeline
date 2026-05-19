@@ -2,25 +2,28 @@ use std::time::Duration;
 
 use tokio::time::interval;
 
+use crate::utils::get_env;
+
 mod admin;
+mod events;
+mod generator;
 mod producer;
+mod utils;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Initializing Redpanda Admin Client");
-    let brokers = std::env::var("KAFKA_BROKERS").expect("KAFKA_BROKERS env variable must be set");
-    let topic = std::env::var("TOPIC").unwrap_or_else(|_| "raw-events".to_string());
+    let brokers = get_env("KAFKA_BROKERS", None);
+    let topic = get_env("TOPIC", Some("raw-events"));
 
-    let admin = admin::Admin::new(&brokers);
+    let admin = admin::Admin::new(&brokers)?;
 
-    if let Ok(exists) = admin.topic_exists(&topic).await {
-        if exists {
-            println!("Topic {topic} already exists")
-        } else if let Err(err) = admin.create_topic(&topic).await {
-            eprintln!("Failed to create topic {topic}: {err:?}")
-        }
-    } else {
-        eprintln!("Could not check if topic {topic} exists")
+    let exists = admin.topic_exists(&topic).await?;
+
+    if exists {
+        println!("Topic {topic} already exists")
+    } else if let Err(err) = admin.create_topic(&topic).await {
+        eprintln!("Failed to create topic {topic}: {err:?}")
     }
 
     let producer = producer::AppProducer::new(&brokers, &topic);
@@ -29,10 +32,7 @@ async fn main() {
 
     loop {
         ticker.tick().await;
-        let msg = producer::AppMessage {
-            id: uuid::Uuid::new_v4().to_string(),
-            message: "synthetic_tx".to_string(),
-        };
+        let msg = generator::generate_event();
         producer.send_message(msg).await;
     }
 }
