@@ -5,7 +5,7 @@ import (
 )
 
 type Config struct {
-	KafkaBroker string `env:"KAFKA_BROKER" envDefault:"localhost:9092"`
+	KafkaBrokers string `env:"KAFKA_BROKERS" envDefault:"localhost:9092"`
 }
 
 func Load() (*Config, error) {
