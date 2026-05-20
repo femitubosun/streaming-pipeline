@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/femitubosun/streaming-pipeline/processor/internal/admin"
 	"github.com/femitubosun/streaming-pipeline/processor/internal/config"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
@@ -20,7 +21,31 @@ func main() {
 	}
 	fmt.Println("KAFKA_BROKERS: ", cfg.KafkaBrokers)
 
+	brokers := []string{cfg.KafkaBrokers}
+
+	adm, err := admin.NewAdmin(brokers)
+
+	if err != nil {
+		fmt.Println("Could not create admin:", err)
+		os.Exit(1)
+	}
+	defer adm.Close()
+
 	topic := "raw-events"
+
+	exists, err := adm.TopicExists(topic)
+
+	if err != nil {
+		fmt.Println("Could not check topic exists", err)
+		os.Exit(1)
+	}
+
+	if !exists {
+		fmt.Printf("Topic %s does not exist\n", topic)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Topic %s exists\n", topic)
 
 	cl, err := kgo.NewClient(
 		kgo.SeedBrokers(cfg.KafkaBrokers),
