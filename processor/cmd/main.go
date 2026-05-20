@@ -17,7 +17,6 @@ import (
 )
 
 func main() {
-
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Println("Could not load env")
@@ -97,7 +96,7 @@ func main() {
 		}
 
 		if err != nil {
-			fmt.Printf("pool error: %v\n", err)
+			fmt.Printf("poll error: %v\n", err)
 			continue
 		}
 
@@ -124,6 +123,13 @@ func main() {
 				slog.Error("produce failed", "error", err)
 				continue
 			}
+
+			slog.Info("processed",
+				"event_id", processed.EventID,
+				"risk_score", processed.RiskScore,
+				"status", processed.ValidationStatus,
+			)
+			cs.MarkCommitted(record)
 		}
 
 	}

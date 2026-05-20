@@ -19,6 +19,15 @@ const (
 	NGN Currency = "NGN"
 	EUR Currency = "EUR"
 	GBP Currency = "GBP"
+	CAD Currency = "CAD"
+)
+
+type ValidationStatus string
+
+const (
+	ValidationStatusApproved ValidationStatus = "approved"
+	ValidationStatusFlagged  ValidationStatus = "flagged"
+	ValidationStatusRejected ValidationStatus = "rejected"
 )
 
 type RawTransactionEvent struct {
@@ -48,4 +57,11 @@ type ProcessedTransactionEvent struct {
 	Country               string   `json:"country"`
 	InstrumentFingerprint string   `json:"instrument_fingerprint"`
 	IsFraud               bool     `json:"is_fraud"`
+
+	RiskScore           float64          `json:"risk_score"`
+	ProcessedAt         string           `json:"processed_at"`
+	ProcessorID         string           `json:"processor_id"`
+	ProcessingLatencyMs int64            `json:"processing_latency_ms"`
+	RiskFactors         []string         `json:"risk_factors"`
+	ValidationStatus    ValidationStatus `json:"validation_status"`
 }

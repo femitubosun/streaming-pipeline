@@ -2,7 +2,7 @@ use chrono::Utc;
 use rand::RngExt;
 use uuid::{NoContext, Timestamp, Uuid};
 
-use crate::events::{Currency, Money, TransactionEvent, TransactionEventType};
+use crate::events::{Country, Currency, Money, TransactionEvent, TransactionEventType};
 
 pub fn generate_event() -> TransactionEvent {
     let money = get_random_money();
@@ -17,7 +17,7 @@ pub fn generate_event() -> TransactionEvent {
         amount: money.amount,
         currency: money.currency,
         merchant_id: Uuid::new_v4().to_string(),
-        country: String::from("US"),
+        country: get_random_country(),
         instrument_fingerprint: format!("fp_{}", Uuid::new_v4()),
     }
 }
@@ -25,11 +25,13 @@ pub fn generate_event() -> TransactionEvent {
 fn get_random_money() -> Money {
     let mut rng = rand::rng();
 
-    let amount = rng.random_range(100..100000);
-    let currency = match rng.random_range(0..3) {
+    let amount = rng.random_range(1_00..200_000_00);
+    let currency = match rng.random_range(0..5) {
         0 => Currency::USD,
         1 => Currency::NGN,
-        _ => Currency::EUR,
+        2 => Currency::EUR,
+        3 => Currency::GBP,
+        _ => Currency::CAD,
     };
 
     Money { amount, currency }
@@ -46,5 +48,18 @@ fn get_random_event_type() -> TransactionEventType {
         4 => TransactionEventType::Flagged,
         5 => TransactionEventType::Reversed,
         _ => TransactionEventType::Expired,
+    }
+}
+
+fn get_random_country() -> Country {
+    let mut rng = rand::rng();
+
+    match rng.random_range(0..6) {
+        0 => Country::US,
+        1 => Country::NG,
+        2 => Country::GB,
+        3 => Country::CA,
+        4 => Country::FR,
+        _ => Country::ES,
     }
 }

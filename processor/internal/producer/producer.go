@@ -30,8 +30,8 @@ func NewProducer(brokers []string, topic string) (*Producer, error) {
 	}, nil
 }
 
-func (c *Producer) Close() {
-	c.client.Close()
+func (p *Producer) Close() {
+	p.client.Close()
 }
 
 func (p *Producer) SendMessage(ctx context.Context, key []byte, value []byte) error {

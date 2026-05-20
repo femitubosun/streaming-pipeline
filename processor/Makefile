@@ -1,6 +1,7 @@
+.PHONY: test fmt run build
+
 test:
 	go test ./...
-
 fmt:
 	go fmt ./...
 
