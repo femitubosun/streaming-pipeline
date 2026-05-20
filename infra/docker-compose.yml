@@ -1,0 +1,21 @@
+services:
+  producer:
+    build: ../producer
+    environment: { KAFKA_BROKERS: redpanda:9092 }
+    networks: [grpc-pipeline]
+
+  processor:
+    build: ../processor
+    environment: { KAFKA_BROKERS: redpanda:9092 }
+    networks: [grpc-pipeline]
+
+  api:
+    build: ../api
+    environment: { PORT: "3000" }
+    ports:
+      - "3000:3000"
+    networks: ["grpc-pipeline"]
+
+networks:
+  grpc-pipeline:
+    external: true

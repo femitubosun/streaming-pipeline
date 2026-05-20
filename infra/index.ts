@@ -1,27 +1,26 @@
 import * as docker from "@pulumi/docker";
-import * as pulumi from "@pulumi/pulumi";
 
 const network = new docker.Network("app-network", {
   name: "grpc-pipeline",
 });
 
-const apiImage = new docker.Image("api", {
-  imageName: "grpc-api",
-  build: { context: "../api" },
-  skipPush: true,
-});
+// const apiImage = new docker.Image("api", {
+//   imageName: "grpc-api",
+//   build: { context: "../api" },
+//   skipPush: true,
+// });
 
-const producerImage = new docker.Image("producer", {
-  imageName: "grpc-producer",
-  build: { context: "../producer" },
-  skipPush: true,
-});
+// const producerImage = new docker.Image("producer", {
+//   imageName: "grpc-producer",
+//   build: { context: "../producer" },
+//   skipPush: true,
+// });
 
-const processorImage = new docker.Image("processor", {
-  imageName: "grpc-processor",
-  build: { context: "../processor" },
-  skipPush: true,
-});
+// const processorImage = new docker.Image("processor", {
+//   imageName: "grpc-processor",
+//   build: { context: "../processor" },
+//   skipPush: true,
+// });
 
 const redpanda = new docker.Container("redpanda", {
   image: "docker.redpanda.com/redpandadata/redpanda:v26.1.8",
@@ -63,48 +62,48 @@ const redpanda = new docker.Container("redpanda", {
   },
 });
 
-const producer = new docker.Container(
-  "producer",
-  {
-    image: producerImage.imageName,
-    name: "producer",
-    networksAdvanced: [{ name: network.name }],
-    ports: [],
-    envs: ["KAFKA_BROKERS=redpanda:9092"],
-    mustRun: true,
-  },
-  {
-    dependsOn: [redpanda],
-  },
-);
+// const producer = new docker.Container(
+//   "producer",
+//   {
+//     image: producerImage.imageName,
+//     name: "producer",
+//     networksAdvanced: [{ name: network.name }],
+//     ports: [],
+//     envs: ["KAFKA_BROKERS=redpanda:9092"],
+//     mustRun: true,
+//   },
+//   {
+//     dependsOn: [redpanda],
+//   },
+// );
 
-const processor = new docker.Container(
-  "processor",
-  {
-    image: processorImage.imageName,
-    name: "processor",
-    networksAdvanced: [{ name: network.name }],
-    ports: [],
-    mustRun: true,
-    envs: ["KAFKA_BROKERS=redpanda:9092"],
-  },
-  {
-    dependsOn: [redpanda],
-  },
-);
+// const processor = new docker.Container(
+//   "processor",
+//   {
+//     image: processorImage.imageName,
+//     name: "processor",
+//     networksAdvanced: [{ name: network.name }],
+//     ports: [],
+//     mustRun: true,
+//     envs: ["KAFKA_BROKERS=redpanda:9092"],
+//   },
+//   {
+//     dependsOn: [redpanda],
+//   },
+// );
 
-const api = new docker.Container("api", {
-  image: apiImage.imageName,
-  name: "api",
-  networksAdvanced: [{ name: network.name }],
-  ports: [
-    {
-      internal: 3000,
-      external: 3000,
-    },
-  ],
-  envs: ["PORT=3000"],
-  mustRun: true,
-});
+// const api = new docker.Container("api", {
+//   image: apiImage.imageName,
+//   name: "api",
+//   networksAdvanced: [{ name: network.name }],
+//   ports: [
+//     {
+//       internal: 3000,
+//       external: 3000,
+//     },
+//   ],
+//   envs: ["PORT=3000"],
+//   mustRun: true,
+// });
 
-export const apiUrl = `http://localhost:3000`;
+// export const apiUrl = `http://localhost:3000`;

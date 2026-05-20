@@ -1,6 +1,27 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Copy, Serialize, Deserialize)]
+pub enum Country {
+    #[serde(rename = "US")]
+    US,
+
+    #[serde(rename = "NG")]
+    NG,
+
+    #[serde(rename = "GB")]
+    GB,
+
+    #[serde(rename = "CA")]
+    CA,
+
+    #[serde(rename = "FR")]
+    FR,
+
+    #[serde(rename = "ES")]
+    ES,
+}
+
+#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
 pub enum Currency {
     #[serde(rename = "USD")]
     USD,
@@ -13,6 +34,9 @@ pub enum Currency {
 
     #[serde(rename = "GBP")]
     GBP,
+
+    #[serde(rename = "CAD")]
+    CAD,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -56,7 +80,7 @@ pub struct TransactionEvent {
     pub amount: u64,
     pub currency: Currency,
     pub merchant_id: String,
-    pub country: String,
+    pub country: Country,
 
     pub instrument_fingerprint: String,
 }
