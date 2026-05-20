@@ -2,14 +2,18 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/femitubosun/streaming-pipeline/processor/internal/admin"
 	"github.com/femitubosun/streaming-pipeline/processor/internal/config"
-	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/femitubosun/streaming-pipeline/processor/internal/consumer"
+	"github.com/femitubosun/streaming-pipeline/processor/internal/producer"
+	"github.com/femitubosun/streaming-pipeline/processor/internal/transactions"
 )
 
 func main() {
@@ -32,55 +36,96 @@ func main() {
 	defer adm.Close()
 
 	topic := "raw-events"
+	processedTopic := "processed-events"
 
-	exists, err := adm.TopicExists(topic)
+	inputExists, err := adm.TopicExists(topic)
+	if err != nil {
+		fmt.Println("Could not check input topic exists", err)
+		os.Exit(1)
+	}
+
+	if !inputExists {
+		fmt.Printf("Input Topic %s does not exist\n", topic)
+		os.Exit(1)
+	}
+
+	processedExists, err := adm.TopicExists(processedTopic)
+	if err != nil {
+		fmt.Printf("Could not check output topic: %v\n", err)
+		os.Exit(1)
+	}
+
+	if !processedExists {
+		fmt.Printf("Creating topic %s\n", processedTopic)
+		if err := adm.CreateTopic(processedTopic); err != nil {
+			fmt.Printf("Could not create topic: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
+	prd, err := producer.NewProducer(brokers, processedTopic)
 
 	if err != nil {
-		fmt.Println("Could not check topic exists", err)
+		fmt.Println("Could not create producer", err)
 		os.Exit(1)
 	}
 
-	if !exists {
-		fmt.Printf("Topic %s does not exist\n", topic)
-		os.Exit(1)
-	}
+	defer prd.Close()
 
 	fmt.Printf("Topic %s exists\n", topic)
 
-	cl, err := kgo.NewClient(
-		kgo.SeedBrokers(cfg.KafkaBrokers),
-		kgo.ConsumerGroup("stream-processor"),
-		kgo.ConsumeTopics(topic),
-	)
+	topics := []string{"raw-events"}
+
+	cs, err := consumer.NewConsumer(brokers, topics)
 
 	if err != nil {
 		panic(err)
 	}
 
-	defer cl.Close()
+	defer cs.Close()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
+	s := transactions.NewService()
+
 	for {
-		fetches := cl.PollFetches(ctx)
+		records, err := cs.Poll(ctx)
+
 		if ctx.Err() != nil {
 			break
 		}
 
-		if errs := fetches.Errors(); len(errs) > 0 {
-			// All errors are retried internally when fetching, but non-retriable errors are
-			// returned from polls so that users can notice and take action.
-			fmt.Printf("fetch errors: %v\n", errs)
+		if err != nil {
+			fmt.Printf("pool error: %v\n", err)
 			continue
 		}
 
-		// We can iterate through a record iterator...
-		iter := fetches.RecordIter()
-		for !iter.Done() {
-			record := iter.Next()
-			fmt.Println(string(record.Value), "from an iterator!")
+		for _, record := range records {
+			var event transactions.RawTransactionEvent
+			if err := json.Unmarshal(record.Value, &event); err != nil {
+				slog.Error("unmarshal failed", "error", err)
+				continue
+			}
+
+			processed, err := s.Enrich(context.Background(), event)
+			if err != nil {
+				slog.Error("enrich failed", "error", err)
+				continue
+			}
+
+			payload, err := json.Marshal(processed)
+			if err != nil {
+				slog.Error("marshal failed", "error", err)
+				continue
+			}
+
+			if err := prd.SendMessage(ctx, []byte(event.EventID), payload); err != nil {
+				slog.Error("produce failed", "error", err)
+				continue
+			}
 		}
+
 	}
 
 }

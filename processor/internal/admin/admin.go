@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -27,7 +28,10 @@ func NewAdmin(brokers []string) (*Admin, error) {
 }
 
 func (a *Admin) TopicExists(topic string) (bool, error) {
-	topics, err := a.client.ListTopics(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	topics, err := a.client.ListTopics(ctx)
 	if err != nil {
 		return false, fmt.Errorf("List topics: %w", err)
 	}
@@ -37,7 +41,10 @@ func (a *Admin) TopicExists(topic string) (bool, error) {
 }
 
 func (a *Admin) CreateTopic(topic string) error {
-	resp, err := a.client.CreateTopics(context.Background(), 1, 1, nil, topic)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	resp, err := a.client.CreateTopics(ctx, 1, 1, nil, topic)
 	if err != nil {
 		return fmt.Errorf("create topic: %w", err)
 	}
