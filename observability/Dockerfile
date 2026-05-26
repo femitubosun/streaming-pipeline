@@ -1,17 +1,16 @@
 FROM golang:1.25.5-alpine AS builder
 
 WORKDIR /app
-COPY go.mod go.sum ./
+COPY observability/go.mod observability/go.sum ./
+COPY proto /proto
 RUN go mod download
 
-COPY cmd ./cmd
+COPY observability/cmd ./cmd
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o observability ./cmd
 
 FROM gcr.io/distroless/static-debian12:nonroot
-
-WORKDIR /app
-COPY --from=builder /app/observability .
+COPY --from=builder /app/observability /observability
 
 USER nonroot:nonroot
 
-ENTRYPOINT ["./observability"]
+ENTRYPOINT ["/observability"]
