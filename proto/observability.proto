@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package observability;
+
+option go_package = "github.com/femitubosun/streaming-pipeline/proto/observability";
+
+service ObservabilityService {
+  // Processor pushes aggregated transaction metrics
+  rpc RecordTransactionMetrics(TransactionMetricsRequest) returns (Empty);
+
+  rpc GetTransactionMetrics(Empty) returns (TransactionMetricsResponse);
+}
+
+message TransactionMetricsRequest {
+  map<string, int64> status_counts = 1;
+  string processor_id = 2;
+  int64 timestamp_ms = 3;
+}
+
+message TransactionMetricsResponse {
+  map<string, int64> status_counts = 1;
+  int64 total_processed = 2;
+  int64 last_updated_ms = 3;
+}
+
+message Empty {}

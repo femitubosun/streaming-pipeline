@@ -8,12 +8,17 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/femitubosun/streaming-pipeline/processor/internal/admin"
 	"github.com/femitubosun/streaming-pipeline/processor/internal/config"
 	"github.com/femitubosun/streaming-pipeline/processor/internal/consumer"
 	"github.com/femitubosun/streaming-pipeline/processor/internal/producer"
 	"github.com/femitubosun/streaming-pipeline/processor/internal/transactions"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
+	pb "github.com/femitubosun/streaming-pipeline/proto/observability"
 )
 
 func main() {
@@ -22,6 +27,19 @@ func main() {
 		fmt.Println("Could not load env")
 		os.Exit(1)
 	}
+
+	counts := make(map[string]int64)
+
+	obsConn, err := grpc.NewClient("observability:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	if err != nil {
+		fmt.Println("Could not connect to observability:", err)
+		os.Exit(1)
+	}
+
+	defer obsConn.Close()
+	obsClient := pb.NewObservabilityServiceClient(obsConn)
+
 	fmt.Println("KAFKA_BROKERS: ", cfg.KafkaBrokers)
 
 	brokers := []string{cfg.KafkaBrokers}
@@ -130,6 +148,22 @@ func main() {
 				"status", processed.ValidationStatus,
 			)
 			cs.MarkCommitted(record)
+			counts[string(processed.ValidationStatus)]++
+		}
+
+		if len(counts) > 0 {
+			_, err := obsClient.RecordTransactionMetrics(ctx, &pb.TransactionMetricsRequest{
+				StatusCounts: counts,
+				ProcessorId:  cfg.ProcessorID,
+				TimestampMs:  time.Now().UnixMilli(),
+			})
+
+			if err != nil {
+				slog.Error("failed to push metrics", "error", err)
+			} else {
+				counts = make(map[string]int64)
+			}
+
 		}
 
 	}
