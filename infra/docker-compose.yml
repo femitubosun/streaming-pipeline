@@ -4,10 +4,22 @@ services:
     environment: { KAFKA_BROKERS: redpanda:9092 }
     networks: [grpc-pipeline]
 
+  observability:
+    build:
+      context: ..
+      dockerfile: ./observability/Dockerfile
+    environment: {}
+    ports:
+      - "50051:50051"
+    networks: [grpc-pipeline]
+
   processor:
-    build: ../processor
+    build:
+      context: ..
+      dockerfile: ./processor/Dockerfile
     environment: { KAFKA_BROKERS: redpanda:9092 }
     networks: [grpc-pipeline]
+    depends_on: ["observability"]
 
   api:
     build: ../api
