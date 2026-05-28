@@ -2,10 +2,13 @@
   "name": "api",
   "scripts": {
     "dev": "portless grpc-stream-api bun run --hot src/index.ts",
-    "start": "bun run src/index.ts"
+    "start": "bun run src/index.ts",
+    "gen:proto": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --proto_path=../proto --ts_proto_out=./src/proto --ts_proto_opt=outputServices=grpc-js observability.proto"
   },
   "dependencies": {
-    "hono": "^4.12.19"
+    "@grpc/grpc-js": "^1.14.4",
+    "hono": "^4.12.19",
+    "ts-proto": "^2.11.8"
   },
   "devDependencies": {
     "@types/bun": "latest",
