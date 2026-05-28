@@ -48,6 +48,6 @@ func (c *Consumer) Poll(ctx context.Context) ([]*kgo.Record, error) {
 	return records, nil
 }
 
-func (c *Consumer) MarkCommitted(record *kgo.Record) {
-	c.client.MarkCommitRecords(record)
+func (c *Consumer) MarkCommitted(records ...*kgo.Record) {
+	c.client.MarkCommitRecords(records...)
 }

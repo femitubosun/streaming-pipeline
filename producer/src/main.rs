@@ -1,8 +1,5 @@
-use std::time::Duration;
-
-use tokio::time::interval;
-
 use crate::utils::get_env;
+use futures::future::join_all;
 
 mod admin;
 mod events;
@@ -28,11 +25,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let producer = producer::AppProducer::new(&brokers, &topic);
 
-    let mut ticker = interval(Duration::from_millis(10)); // 100 events/sec
+    const BATCH_SIZE: usize = 5000;
 
     loop {
-        ticker.tick().await;
-        let msg = generator::generate_event();
-        producer.send_message(msg).await;
+        let futures: Vec<_> = (0..BATCH_SIZE)
+            .map(|_| producer.send_message(generator::generate_event()))
+            .collect();
+
+        let results = join_all(futures).await;
+        let sent = results.iter().filter(|r| r.is_ok()).count();
+
+        if sent < BATCH_SIZE {
+            eprintln!("Dropped {}/{BATCH_SIZE}", BATCH_SIZE - sent)
+        }
     }
 }

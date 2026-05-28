@@ -18,6 +18,8 @@ func NewProducer(brokers []string, topic string) (*Producer, error) {
 		kgo.SeedBrokers(brokers...),
 		kgo.RequestRetries(3),
 		kgo.RetryTimeout(30*time.Second),
+		kgo.ProducerBatchMaxBytes(1_000_000),
+		kgo.BrokerMaxWriteBytes(10_000_000),
 	)
 
 	if err != nil {
@@ -34,16 +36,10 @@ func (p *Producer) Close() {
 	p.client.Close()
 }
 
-func (p *Producer) SendMessage(ctx context.Context, key []byte, value []byte) error {
-	record := &kgo.Record{
+func (p *Producer) SendMessage(ctx context.Context, key []byte, value []byte) {
+	p.client.Produce(ctx, &kgo.Record{
 		Topic: p.topic,
 		Key:   key,
 		Value: value,
-	}
-
-	if err := p.client.ProduceSync(ctx, record).FirstErr(); err != nil {
-		return fmt.Errorf("produce: %w", err)
-	}
-
-	return nil
+	}, func(_ *kgo.Record, _ error) {})
 }

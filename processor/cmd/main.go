@@ -15,6 +15,7 @@ import (
 	"github.com/femitubosun/streaming-pipeline/processor/internal/consumer"
 	"github.com/femitubosun/streaming-pipeline/processor/internal/producer"
 	"github.com/femitubosun/streaming-pipeline/processor/internal/transactions"
+	"github.com/twmb/franz-go/pkg/kgo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -118,7 +119,10 @@ func main() {
 			continue
 		}
 
+		var toCommit []*kgo.Record
+
 		for _, record := range records {
+
 			var event transactions.RawTransactionEvent
 			if err := json.Unmarshal(record.Value, &event); err != nil {
 				slog.Error("unmarshal failed", "error", err)
@@ -137,18 +141,13 @@ func main() {
 				continue
 			}
 
-			if err := prd.SendMessage(ctx, []byte(event.EventID), payload); err != nil {
-				slog.Error("produce failed", "error", err)
-				continue
-			}
-
-			slog.Info("processed",
-				"event_id", processed.EventID,
-				"risk_score", processed.RiskScore,
-				"status", processed.ValidationStatus,
-			)
-			cs.MarkCommitted(record)
+			prd.SendMessage(ctx, []byte(event.EventID), payload)
 			counts[string(processed.ValidationStatus)]++
+			toCommit = append(toCommit, record)
+		}
+
+		if len(toCommit) > 0 {
+			cs.MarkCommitted(toCommit...)
 		}
 
 		if len(counts) > 0 {
@@ -160,9 +159,9 @@ func main() {
 
 			if err != nil {
 				slog.Error("failed to push metrics", "error", err)
-			} else {
-				counts = make(map[string]int64)
 			}
+
+			counts = make(map[string]int64)
 
 		}
 

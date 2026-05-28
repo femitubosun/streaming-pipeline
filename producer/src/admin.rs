@@ -30,7 +30,7 @@ impl Admin {
     }
 
     pub async fn create_topic(&self, topic: &str) -> KafkaResult<()> {
-        let new_topic = NewTopic::new(topic, 1, TopicReplication::Fixed(1));
+        let new_topic = NewTopic::new(topic, 40, TopicReplication::Fixed(1));
         let res = self
             .client
             .create_topics(

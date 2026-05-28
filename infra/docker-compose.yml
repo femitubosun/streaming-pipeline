@@ -3,6 +3,8 @@ services:
     build: ../producer
     environment: { KAFKA_BROKERS: redpanda:9092 }
     networks: [grpc-pipeline]
+    deploy:
+      replicas: 2
 
   observability:
     build:
@@ -20,6 +22,8 @@ services:
     environment: { KAFKA_BROKERS: redpanda:9092 }
     networks: [grpc-pipeline]
     depends_on: ["observability"]
+    deploy:
+      replicas: 4
 
   api:
     build: ../api

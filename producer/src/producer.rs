@@ -2,6 +2,8 @@ use std::time::Duration;
 
 use rdkafka::{
     ClientConfig,
+    error::KafkaError,
+    message::OwnedMessage,
     producer::{FutureProducer, FutureRecord},
     util::Timeout,
 };
@@ -17,6 +19,11 @@ impl AppProducer {
     pub fn new(brokers: &str, topic: &str) -> Self {
         let producer: FutureProducer = ClientConfig::new()
             .set("bootstrap.servers", brokers)
+            .set("batch.size", "32768")
+            .set("linger.ms", "10")
+            .set("compression.type", "lz4")
+            .set("acks", "1")
+            .set("retries", "3")
             .create()
             .expect("Producer creation failed");
 
@@ -26,11 +33,13 @@ impl AppProducer {
         }
     }
 
-    pub async fn send_message(&self, message: TransactionEvent) {
+    pub async fn send_message(
+        &self,
+        message: TransactionEvent,
+    ) -> Result<(), (KafkaError, OwnedMessage)> {
         let payload = serde_json::to_string(&message).expect("Failed to serialize message");
 
-        match self
-            .producer
+        self.producer
             .send(
                 FutureRecord::to(&self.topic)
                     .payload(&payload)
@@ -38,9 +47,6 @@ impl AppProducer {
                 Timeout::After(Duration::from_secs(10)),
             )
             .await
-        {
-            Ok(_) => println!("Message sent"),
-            Err((err, _)) => eprintln!("Failed to send: {err:?}"),
-        }
+            .map(|_| ())
     }
 }
