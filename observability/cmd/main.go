@@ -28,6 +28,8 @@ func (s *server) RecordTransactionMetrics(ctx context.Context, req *pb.Transacti
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	slog.Info("received metrics", "processor", req.ProcessorId, "counts", req.StatusCounts)
+
 	for status, count := range req.StatusCounts {
 		s.counts[status] += count
 		s.totalProcessed += count
